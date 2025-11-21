@@ -34,8 +34,9 @@ fig, ax = plt.subplots(figsize=(8, 8))
 ax.plot(x, y, color='maroon',linewidth='0.5')
 ax.set_aspect('equal')
 ax.grid(True, ls='--', alpha=0.4)
-ax.set_title("Hypotrochoïde")
+ax.set_title("Tripletrochoïde")
 st.pyplot(fig)
+
 
 
 
