@@ -7,8 +7,8 @@ st.title("Interactieve Tripletrochoïde")
 
 # Sliders voor parameters
 R1 = st.slider("R1 (straal 1)", 1.0, 20.0, 6.0, 0.1)
-R2 = st.slider("R2 (straal 2)", 1.0, 20.0, 8.0, 0.1)
-R3 = st.slider("R3 (straal 3)", 0.1, 10.0, 1.0, 0.1)
+R2 = st.slider("R2 (straal 2)", -20.0, 20.0, 8.0, 0.1)
+R3 = st.slider("R3 (straal 3)", -20.0, 10.0, 1.0, 0.1)
 a = st.slider("a (verhouding)", 0.0, 2.0, 7/12, 0.01)
 
 # Overige vaste parameters
@@ -35,6 +35,7 @@ ax.set_aspect('equal')
 ax.grid(True, ls='--', alpha=0.4)
 ax.set_title("Hypotrochoïde")
 st.pyplot(fig)
+
 
 
 
