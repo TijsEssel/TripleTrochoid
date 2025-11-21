@@ -30,10 +30,11 @@ y = (R1 + R2) * np.sin(t + f0) + np.sin((1 + (R1 / R2)) * t) * u + np.cos((1 + (
 
 # Plotten
 fig, ax = plt.subplots(figsize=(8, 8))
-ax.plot(x, y, color='maroon',linewidth='0.2')
+ax.plot(x, y, color='maroon',linewidth='0.5')
 ax.set_aspect('equal')
 ax.grid(True, ls='--', alpha=0.4)
 ax.set_title("Hypotrochoïde")
 st.pyplot(fig)
+
 
 
