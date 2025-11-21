@@ -6,11 +6,11 @@ import streamlit as st
 st.title("Interactieve Tripletrochoïde")
 
 # Sliders voor parameters
-R1 = st.slider("R1 (straal 1)", 1.0, 20.0, 6.0, 0.1)
+R1 = st.slider("R1 (straal 1)", 1.0, 20.0, 11.0, 0.1)
 R2 = st.slider("R2 (straal 2)", 1.0, 20.0, 8.0, 0.1)
-R3 = st.slider("R3 (straal 3)", 1.0, 10.0, 1.0, 0.1)
-a = st.slider("a (verhouding)", -2.0, 2.0, 1.5, 0.01)
-d = st.slider("d (afstand)", 0.0, 40.0, 1.0, 0.1)
+R3 = st.slider("R3 (straal 3)", 1.0, 10.0, 6.80, 0.1)
+a = st.slider("a (verhouding)", -2.0, 2.0, -1.0, 0.01)
+d = st.slider("d (afstand)", 0.0, 40.0, 1.9, 0.1)
 
 # Overige vaste parameters
 f1 = 1 * np.pi
@@ -36,6 +36,7 @@ ax.set_aspect('equal')
 ax.grid(True, ls='--', alpha=0.4)
 ax.set_title("Hypotrochoïde")
 st.pyplot(fig)
+
 
 
 
