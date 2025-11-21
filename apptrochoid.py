@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import streamlit as st
 
-st.title("Interactieve Hypotrochoïde Visualisatie")
+st.title("Interactieve Tripletrochoïde")
 
 # Sliders voor parameters
 R1 = st.slider("R1 (straal 1)", 1.0, 20.0, 6.0, 0.1)
@@ -35,6 +35,7 @@ ax.set_aspect('equal')
 ax.grid(True, ls='--', alpha=0.4)
 ax.set_title("Hypotrochoïde")
 st.pyplot(fig)
+
 
 
 
