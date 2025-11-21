@@ -10,12 +10,11 @@ R1 = st.slider("R1 (straal 1)", 1.0, 20.0, 6.0, 0.1)
 R2 = st.slider("R2 (straal 2)", -20.0, 20.0, 8.0, 0.1)
 R3 = st.slider("R3 (straal 3)", -10.0, 10.0, 1.0, 0.1)
 a = st.slider("a (verhouding)", 0.0, 2.0, 7/12, 0.01)
-d = st.slider("d (afstand)", 0.0, 50.0, 1, 0.01)
+d = st.slider("d (afstand)", 0.0, 50.0, 1.0, 0.01)
 
 # Overige vaste parameters
 f1 = 1 * np.pi
 f0 = 0 * np.pi
-d=10
 up = d
 vp = 0
 fps = 60
@@ -37,6 +36,7 @@ ax.set_aspect('equal')
 ax.grid(True, ls='--', alpha=0.4)
 ax.set_title("Hypotrochoïde")
 st.pyplot(fig)
+
 
 
 
