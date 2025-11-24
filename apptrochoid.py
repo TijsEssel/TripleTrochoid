@@ -31,11 +31,12 @@ y = (R1 + R2) * np.sin(t + f0) + np.sin((1 + (R1 / R2)) * t) * u + np.cos((1 + (
 
 # Plotten
 fig, ax = plt.subplots(figsize=(8, 8))
-ax.plot(x, y, color='black',linewidth='0.5')
+ax.plot(x, y, color='blue',linewidth='0.5')
 ax.set_aspect('equal')
 ax.grid(True, ls='--', alpha=0.4)
 ax.set_title("Tripletrochoïde")
 st.pyplot(fig)
+
 
 
 
