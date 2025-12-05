@@ -1,0 +1,294 @@
+
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tripletrochoïde</title>
+  <style>
+    :root {color-scheme: light dark;}
+    body{font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji"; margin:0;}
+    header{padding:1rem; border-bottom:1px solid #ccc;}
+    h1{margin:.2rem 0 .6rem 0; font-size:1.4rem}
+    .grid{display:grid; grid-template-columns: repeat(7, minmax(110px, 1fr)); gap:.5rem; align-items:end}
+    .field{display:flex; flex-direction:column; gap:.25rem}
+    label{font-size:.9rem}
+    input{padding:.35rem .5rem; font:inherit;}
+    .row{display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;}
+    button{padding:.45rem .7rem; font:inherit; cursor:pointer}
+    #info{font-size:.9rem; margin-top:.5rem;}
+    main{display:flex; gap:1rem; padding:1rem}
+    #canvasWrap{position:relative;}
+    canvas{background: #fff; border:1px solid #ddd; max-width:100%; height:auto}
+    .legend{font-size:.85rem;}
+    .legend span{display:inline-flex; align-items:center; gap:.35rem; margin-right:1rem}
+    .dot{width:.8rem; height:.8rem; border-radius:50%; display:inline-block}
+    .cR1{background:black}
+    .cR2{background:#22aa66}
+    .cR3{background:#1f77b4}
+    .trace{background:#0074d9}
+    details{margin-top:.75rem}
+    code{white-space:pre-wrap}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Tripletrochoïde</h1>
+    <div class="grid">
+      <div class="field"><label for="R1">R1 (∈ ℤ)</label><input id="R1" type="number" step="1" value="21"></div>
+      <div class="field"><label for="R2">R2 (∈ ℤ)</label><input id="R2" type="number" step="1" value="-12"></div>
+      <div class="field"><label for="R3">R3 (∈ ℤ)</label><input id="R3" type="number" step="1" value="4"></div>
+      <div class="field"><label for="a1">a1 (∈ ℤ)</label><input id="a1" type="number" step="1" value="-5"></div>
+      <div class="field"><label for="a2">a2 (∈ ℤ)</label><input id="a2" type="number" step="1" value="13"></div>
+      <div class="field"><label for="d">d (∈ ℝ)</label><input id="d" type="number" step="any" value="2.5"></div>
+      <div class="field"><label for="traceColor">Kleur tracé</label><input id="traceColor" type="color" value="#0074d9"></div>
+    </div>
+    <div class="row" style="margin-top:.5rem">
+      <button id="run">Start/Herbereken</button>
+      <button id="pause">Pauzeer</button>
+      <button id="resume">Hervat</button>
+      <button id="reset">Reset</button>
+      <span class="legend">
+        <span><span class="dot cR1"></span>R1 (basis)</span>
+        <span><span class="dot cR2"></span>R2 (rol)</span>
+        <span><span class="dot cR3"></span>R3 (rol)</span>
+        <span><span class="dot trace" style="background:#0074d9" id="traceDot"></span>Tracé</span>
+      </span>
+    </div>
+    <div id="info">—</div>
+  </header>
+  <main>
+    <div id="canvasWrap">
+      <canvas id="cnv" width="1000" height="1000"></canvas>
+    </div>
+    
+  </main>
+
+  <script>
+  // --- Klein hulppakket voor rationale getallen ---
+  function gcd(a,b){a=Math.trunc(a);b=Math.trunc(b); a=Math.abs(a); b=Math.abs(b); while(b){[a,b]=[b,a%b]} return a||1}
+  function lcm(a,b){a=Math.trunc(a);b=Math.trunc(b); return Math.abs(a*b)/gcd(a,b)}
+  function Rational(n,d){ this.n=n; this.d=d; norm(this)}
+  function norm(r){ if(r.d===0){throw new Error('Denominator 0')} if(r.d<0){r.n=-r.n; r.d=-r.d} let g=gcd(r.n,r.d); r.n/=g; r.d/=g; return r }
+  function add(r,s){ return norm(new Rational(r.n*s.d + s.n*r.d, r.d*s.d)) }
+  function sub(r,s){ return norm(new Rational(r.n*s.d - s.n*r.d, r.d*s.d)) }
+  function mul(r,s){ return norm(new Rational(r.n*s.n, r.d*s.d)) }
+  function div(r,s){ return norm(new Rational(r.n*s.d, r.d*s.n)) }
+  function fromInt(k){ return new Rational(Math.trunc(k),1) }
+
+  // --- UI ---
+  const el={
+    R1:document.getElementById('R1'), R2:document.getElementById('R2'), R3:document.getElementById('R3'),
+    a1:document.getElementById('a1'), a2:document.getElementById('a2'), d:document.getElementById('d'),
+    traceColor:document.getElementById('traceColor'), traceDot:document.getElementById('traceDot'),
+    run:document.getElementById('run'), pause:document.getElementById('pause'), resume:document.getElementById('resume'), reset:document.getElementById('reset'),
+    info:document.getElementById('info'), cnv:document.getElementById('cnv')
+  };
+  const ctx = el.cnv.getContext('2d');
+
+  let animId=null;            // requestAnimationFrame id
+  let running=false;          // animatiestatus
+  let state=null;             // data
+
+  function teken(x){ return x<0 ? -1 : x>0 ? 1 : 0 }
+
+  function compute(){
+    const R1 = parseInt(el.R1.value,10);
+    const R2 = parseInt(el.R2.value,10);
+    const R3 = parseInt(el.R3.value,10);
+    const a1 = parseInt(el.a1.value,10);
+    const a2 = parseInt(el.a2.value,10);
+    const d  = parseFloat(el.d.value);
+
+    if(!Number.isInteger(R1)||!Number.isInteger(R2)||!Number.isInteger(R3)||!Number.isInteger(a1)||!Number.isInteger(a2)){
+      alert('R1, R2, R3, a1 en a2 moeten gehele getallen zijn.'); return null;
+    }
+    if(a2===0){ alert('a2 mag niet 0 zijn.'); return null }
+    if(R2===0||R3===0){ alert('R2 en R3 mogen niet 0 zijn.'); return null }
+
+    // Rationale omega’s precies zoals in het Python-script
+    const omega1 = fromInt(1);
+    const omega2 = add( mul( sub(fromInt(1), div(fromInt(a1), fromInt(a2)) ), div(fromInt(R1), fromInt(R2)) ), fromInt(1) );
+    const omega3 = add( mul( sub(fromInt(1), mul( div(fromInt(a1), fromInt(a2)), add( div(fromInt(R2), fromInt(R3)), fromInt(1) ) ) ), div(fromInt(R1), fromInt(R2)) ), fromInt(1) );
+
+    // Periode en symmetrie
+    const periode = lcm( omega2.d, omega3.d );
+    const periode2 = lcm( omega2.d, omega3.d );
+    const delta1 = sub(omega3, omega2), delta2 = sub(omega2, omega1), delta3 = sub(omega3, omega1);
+    const symmetrie = gcd( gcd(delta1.n, delta2.n), delta3.n );
+
+    // Fasen en lengte (zoals in script)
+    const f0 = 0, f1 = 0;
+    const up = d * Math.abs(R3); const vp = 0;
+    const omwentelingen = periode; // aantal 2π’s
+
+    const fps = 120;
+    const duur_ms = 2000 * omwentelingen; // kan groot worden; bewaak max N
+    let N = Math.floor(fps * (duur_ms/1000));
+    const maxN = 120*600; // ~1 minuut max
+    if(N>maxN){ N = maxN }
+
+    const t = new Float64Array(N);
+    const tEnd = omwentelingen * 2*Math.PI;
+    for(let i=0;i<N;i++){ t[i] = i*(tEnd/(N-1)) }
+
+    // Vooraf schaal bepalen uit marge m zoals in script
+    const m = 1.05 * ( 1*Math.abs(R1) + 2*Math.abs(Math.max(0,R2)) + 2*Math.abs(Math.max(0,teken(R2)*R3)) + 1*Math.abs(up - R3) );
+    const W = el.cnv.width, H = el.cnv.height, cx=W/2, cy=H/2;
+    const s = Math.min(W,H)/(2*m||1);
+
+    // Alle reeksen
+    const xmR2 = new Float64Array(N), ymR2 = new Float64Array(N);
+    const xstraalR2 = new Float64Array(N), ystraalR2 = new Float64Array(N);
+    const t1 = new Float64Array(N);
+    const ucenter = new Float64Array(N), vcenter = new Float64Array(N);
+    const xmR3 = new Float64Array(N), ymR3 = new Float64Array(N);
+    const ustraal = new Float64Array(N), vstraal = new Float64Array(N);
+    const xstraalR3 = new Float64Array(N), ystraalR3 = new Float64Array(N);
+    const u = new Float64Array(N), v = new Float64Array(N);
+    const x = new Float64Array(N), y = new Float64Array(N);
+
+    for(let i=0;i<N;i++){
+      const ti = t[i];
+      const w12 = 1 + (R1/R2);
+      const w23 = 1 + (R2/R3);
+      t1[i] = - (a1/a2) * (R1/R2) * ti;
+      const t1i = t1[i];
+
+      xmR2[i] = (R1+R2)*Math.cos(ti+f0);
+      ymR2[i] = (R1+R2)*Math.sin(ti+f0);
+
+      xstraalR2[i] = (R1+R2)*Math.cos(ti+f0) + Math.cos(w12*ti)*R2;
+      ystraalR2[i] = (R1+R2)*Math.sin(ti+f0) + Math.sin(w12*ti)*R2;
+
+      ucenter[i] = (R2+R3)*Math.cos(t1i+f1);
+      vcenter[i] = (R2+R3)*Math.sin(t1i+f1);
+
+      xmR3[i] = (R1+R2)*Math.cos(ti+f0) + Math.cos(w12*ti)*ucenter[i] - Math.sin(w12*ti)*vcenter[i];
+      ymR3[i] = (R1+R2)*Math.sin(ti+f0) + Math.sin(w12*ti)*ucenter[i] + Math.cos(w12*ti)*vcenter[i];
+
+      ustraal[i] = (R2+R3)*Math.cos(t1i+f1) + Math.cos(w23*t1i)*(R2+R3);
+      vstraal[i] = (R2+R3)*Math.sin(t1i+f1) + Math.sin(w23*t1i)*(R2+R3);
+
+      xstraalR3[i] = (R1+R2)*Math.cos(ti+f0) + Math.cos(w12*ti)*ustraal[i] - Math.sin(w12*ti)*vstraal[i];
+      ystraalR3[i] = (R1+R2)*Math.sin(ti+f0) + Math.sin(w12*ti)*ustraal[i] + Math.cos(w12*ti)*vstraal[i];
+
+      u[i] = (R2+R3)*Math.cos(t1i+f1) + Math.cos(w23*t1i)*up - Math.sin(w23*t1i)*vp;
+      v[i] = (R2+R3)*Math.sin(t1i+f1) + Math.sin(w23*t1i)*up + Math.cos(w23*t1i)*vp;
+
+      x[i] = (R1+R2)*Math.cos(ti+f0) + Math.cos(w12*ti)*u[i] - Math.sin(w12*ti)*v[i];
+      y[i] = (R1+R2)*Math.sin(ti+f0) + Math.sin(w12*ti)*u[i] + Math.cos(w12*ti)*v[i];
+    }
+
+    // Info‑regel
+    const frac = (n,d)=>{ const r=new Rational(n,d); return `${r.n}/${r.d}` }
+    const R1R2 = frac(R1, R2), R2R3 = frac(R2,R3), a1a2 = frac(a1,a2);
+    const info = `Periode: ${periode2} en symmetriegraad: ${symmetrie}`;
+
+    // State
+    const color = el.traceColor.value || '#0074d9';
+    state = {R1,R2,R3,a1,a2,d, kleur:color, periode, periode2, symmetrie, info, m, s, cx, cy, N, i:0,
+             x,y, xmR2,ymR2, xmR3,ymR3, xstraalR2,ystraalR2, xstraalR3,ystraalR3};
+    el.info.textContent = info;
+    el.traceDot.style.background = color;
+    drawStatic();
+    startAnim();
+    return state;
+  }
+
+  function toPxX(x){ return state.cx + state.s*x }
+  function toPxY(y){ return state.cy - state.s*y }
+
+  function drawStatic(){
+    const {R1} = state;
+    ctx.clearRect(0,0,el.cnv.width, el.cnv.height);
+    // R1
+    ctx.save();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.arc(toPxX(0), toPxY(0), Math.abs(state.s*R1), 0, 2*Math.PI);
+    ctx.stroke();
+    ctx.restore();
+
+    // volledige curve (lichtgrijs)
+    ctx.save();
+    ctx.strokeStyle = 'lightgrey'; ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    for(let i=0;i<state.N;i++){
+      const x = toPxX(state.x[i]);
+      const y = toPxY(state.y[i]);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function startAnim(){
+    running = true;
+    if(animId!==null) cancelAnimationFrame(animId);
+    const step = () => {
+      if(!running) { animId=null; return; }
+      drawFrame(state.i);
+      state.i = (state.i + 1) % state.N; // voortzetten vanaf huidige index
+      animId = requestAnimationFrame(step);
+    };
+    animId = requestAnimationFrame(step);
+  }
+
+  function drawFrame(i){
+    const {xmR2,ymR2, xmR3,ymR3, xstraalR2,ystraalR2, xstraalR3,ystraalR3, x,y, kleur, R2, R3} = state;
+    // static
+    drawStatic();
+
+    // Tracé tot i
+    ctx.save();
+    ctx.strokeStyle = kleur; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for(let k=0;k<=i;k++){
+      const X = toPxX(x[k]); const Y = toPxY(y[k]);
+      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // R2
+    ctx.save();
+    ctx.fillStyle = '#22aa66';
+    ctx.strokeStyle = '#22aa66'; ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.arc(toPxX(xmR2[i]), toPxY(ymR2[i]), Math.abs(state.s*Math.abs(R2)), 0, 2*Math.PI);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(toPxX(xmR2[i]), toPxY(ymR2[i]), 3, 0, 2*Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(toPxX(xmR2[i]), toPxY(ymR2[i])); ctx.lineTo(toPxX(xstraalR2[i]), toPxY(ystraalR2[i])); ctx.stroke();
+    ctx.restore();
+
+    // R3
+    ctx.save();
+    ctx.fillStyle = '#1f77b4';
+    ctx.strokeStyle = '#1f77b4'; ctx.lineWidth = 1.0;
+    ctx.beginPath();
+    ctx.arc(toPxX(xmR3[i]), toPxY(ymR3[i]), Math.abs(state.s*Math.abs(R3)), 0, 2*Math.PI);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(toPxX(xmR3[i]), toPxY(ymR3[i]), 3, 0, 2*Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(toPxX(xmR3[i]), toPxY(ymR3[i])); ctx.lineTo(toPxX(x[i]), toPxY(y[i])); ctx.stroke();
+    ctx.restore();
+
+    // R1 straal
+    ctx.save();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.0;
+    ctx.beginPath(); ctx.moveTo(toPxX(0), toPxY(0)); ctx.lineTo(toPxX(xmR2[i]), toPxY(ymR2[i])); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Handlers
+  el.run.addEventListener('click', ()=>{ compute(); });
+  el.pause.addEventListener('click', ()=>{ running=false; });
+  el.resume.addEventListener('click', ()=>{ if(!state){ compute(); } else { if(!running) startAnim(); } });
+  el.reset.addEventListener('click', ()=>{ el.R1.value=21; el.R2.value=-12; el.R3.value=4; el.a1.value=-5; el.a2.value=13; el.d.value=2.5; el.traceColor.value="#0074d9"; compute(); });
+  el.traceColor.addEventListener('input', ()=>{ if(state){ state.kleur = el.traceColor.value; el.traceDot.style.background = state.kleur; } });
+
+  // Init
+  compute();
+  </script>
+</body>
+</html>
